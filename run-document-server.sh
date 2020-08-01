@@ -16,8 +16,16 @@ ONLYOFFICE_DATA_CONTAINER_HOST=${ONLYOFFICE_DATA_CONTAINER_HOST:-localhost}
 ONLYOFFICE_DATA_CONTAINER_PORT=80
 
 SSL_CERTIFICATES_DIR="${DATA_DIR}/certs"
-SSL_CERTIFICATE_PATH=${SSL_CERTIFICATE_PATH:-${SSL_CERTIFICATES_DIR}/onlyoffice.crt}
-SSL_KEY_PATH=${SSL_KEY_PATH:-${SSL_CERTIFICATES_DIR}/onlyoffice.key}
+if [[ -z $SSL_CERTIFICATE_PATH ]] && [[ -f ${SSL_CERTIFICATES_DIR}/onlyoffice.crt ]]; then
+  SSL_CERTIFICATE_PATH=${SSL_CERTIFICATES_DIR}/onlyoffice.crt
+else
+  SSL_CERTIFICATE_PATH=${SSL_CERTIFICATE_PATH:-${SSL_CERTIFICATES_DIR}/tls.crt}
+fi
+if [[ -z $SSL_KEY_PATH ]] && [[ -f ${SSL_CERTIFICATES_DIR}/onlyoffice.key ]]; then
+  SSL_KEY_PATH=${SSL_CERTIFICATES_DIR}/onlyoffice.key
+else
+  SSL_KEY_PATH=${SSL_KEY_PATH:-${SSL_CERTIFICATES_DIR}/tls.key}
+fi
 CA_CERTIFICATES_PATH=${CA_CERTIFICATES_PATH:-${SSL_CERTIFICATES_DIR}/ca-certificates.pem}
 SSL_DHPARAM_PATH=${SSL_DHPARAM_PATH:-${SSL_CERTIFICATES_DIR}/dhparam.pem}
 SSL_VERIFY_CLIENT=${SSL_VERIFY_CLIENT:-off}
@@ -40,6 +48,12 @@ JWT_ENABLED=${JWT_ENABLED:-false}
 JWT_SECRET=${JWT_SECRET:-secret}
 JWT_HEADER=${JWT_HEADER:-Authorization}
 JWT_IN_BODY=${JWT_IN_BODY:-false}
+
+if [[ ${PRODUCT_NAME} == "documentserver" ]]; then
+  REDIS_ENABLED=false
+else
+  REDIS_ENABLED=true
+fi
 
 ONLYOFFICE_DEFAULT_CONFIG=${CONF_DIR}/local.json
 ONLYOFFICE_LOG4JS_CONFIG=${CONF_DIR}/log4js/production.json
@@ -453,7 +467,7 @@ if [ ${ONLYOFFICE_DATA_CONTAINER_HOST} = "localhost" ]; then
 
   if [ ${REDIS_SERVER_HOST} != "localhost" ]; then
     update_redis_settings
-  else
+  elif [ ${REDIS_ENABLED} = "true" ]; then
     # change rights for redis directory
     chown -R redis:redis ${REDIS_DATA}
     chmod -R 750 ${REDIS_DATA}
@@ -484,7 +498,9 @@ fi
 if [ ${ONLYOFFICE_DATA_CONTAINER} != "true" ]; then
   waiting_for_db
   waiting_for_amqp
-  waiting_for_redis
+  if [ ${REDIS_ENABLED} = "true" ]; then
+    waiting_for_redis
+  fi
 
   update_nginx_settings
 
