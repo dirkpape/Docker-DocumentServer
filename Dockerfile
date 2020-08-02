@@ -62,7 +62,7 @@ RUN echo "#!/bin/sh\nexit 0" > /usr/sbin/policy-rc.d && \
 COPY config /app/ds/setup/config/
 COPY run-document-server.sh /app/ds/run-document-server.sh
 
-EXPOSE 80 443
+EXPOSE 80
 
 ARG REPO_URL="deb http://download.onlyoffice.com/repo/debian squeeze main"
 ARG COMPANY_NAME=onlyoffice
