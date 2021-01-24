@@ -50,9 +50,10 @@ RUN echo "#!/bin/sh\nexit 0" > /usr/sbin/policy-rc.d && \
         zlib1g && \
     if [  $(ls -l /usr/share/fonts/truetype/msttcorefonts | wc -l) -ne 61 ]; \
         then echo 'msttcorefonts failed to download'; exit 1; fi  && \
+    echo "SERVER_ADDITIONAL_ERL_ARGS=\"+S 1:1\"" | tee -a /etc/rabbitmq/rabbitmq-env.conf && \
     sed -i "s/bind .*/bind 127.0.0.1/g" /etc/redis/redis.conf && \
     sed 's|\(application\/zip.*\)|\1\n    application\/wasm wasm;|' -i /etc/nginx/mime.types && \
-    sudo -u postgres pg_conftool 10 main set listen_addresses 'localhost' && \
+    sudo -u postgres pg_conftool 12 main set listen_addresses 'localhost' && \
     service postgresql restart && \
     sudo -u postgres psql -c "CREATE DATABASE $ONLYOFFICE_VALUE;" && \
     sudo -u postgres psql -c "CREATE USER $ONLYOFFICE_VALUE WITH password '$ONLYOFFICE_VALUE';" && \
