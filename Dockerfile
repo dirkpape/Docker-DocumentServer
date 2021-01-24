@@ -1,7 +1,11 @@
 FROM ubuntu:20.04
 LABEL maintainer Ascensio System SIA <support@onlyoffice.com>
 
+<<<<<<< HEAD
 ENV LANG=de_DE.UTF-8 LANGUAGE=de_DE:de LC_ALL=de_DE.UTF-8 DEBIAN_FRONTEND=noninteractive PG_VERSION=12
+=======
+ENV LANG=en_US.UTF-8 LANGUAGE=en_US:en LC_ALL=en_US.UTF-8 DEBIAN_FRONTEND=noninteractive PG_VERSION=12
+>>>>>>> 93740b7c37cee9b7018b3a1c32cc1cb7a999e0c8
 
 ARG ONLYOFFICE_VALUE=onlyoffice
 
