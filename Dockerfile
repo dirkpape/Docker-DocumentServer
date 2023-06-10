@@ -1,14 +1,17 @@
-FROM ubuntu:20.04
+ARG BASE_IMAGE=ubuntu:22.04
+
+FROM ${BASE_IMAGE} as documentserver
 LABEL maintainer Ascensio System SIA <support@onlyoffice.com>
 
-ENV LANG=de_DE.UTF-8 LANGUAGE=de_DE:de LC_ALL=de_DE.UTF-8 DEBIAN_FRONTEND=noninteractive PG_VERSION=12
+ARG PG_VERSION=14
+
+ENV LANG=de_DE.UTF-8 LANGUAGE=de_DE:de LC_ALL=de_DE.UTF-8 DEBIAN_FRONTEND=noninteractive PG_VERSION=${PG_VERSION}
 
 ARG ONLYOFFICE_VALUE=onlyoffice
 
 RUN echo "#!/bin/sh\nexit 0" > /usr/sbin/policy-rc.d && \
     apt-get -y update && \
-    apt-get -yq install wget apt-transport-https gnupg locales && \
-    apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 0x8320ca65cb2de8e5 && \
+    apt-get -yq install wget apt-transport-https gnupg locales lsb-release && \
     locale-gen de_DE.UTF-8 && \
     echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections && \
     apt-get -yq install \
@@ -35,7 +38,7 @@ RUN echo "#!/bin/sh\nexit 0" > /usr/sbin/policy-rc.d && \
         mysql-client \
         nano \
         net-tools \
-        netcat \
+        netcat-openbsd \
         nginx-extras \
         postgresql \
         postgresql-client \
@@ -55,9 +58,8 @@ RUN echo "#!/bin/sh\nexit 0" > /usr/sbin/policy-rc.d && \
     sed 's|\(application\/zip.*\)|\1\n    application\/wasm wasm;|' -i /etc/nginx/mime.types && \
     sudo -u postgres pg_conftool $PG_VERSION main set listen_addresses 'localhost' && \
     service postgresql restart && \
-    sudo -u postgres psql -c "CREATE DATABASE $ONLYOFFICE_VALUE;" && \
     sudo -u postgres psql -c "CREATE USER $ONLYOFFICE_VALUE WITH password '$ONLYOFFICE_VALUE';" && \
-    sudo -u postgres psql -c "GRANT ALL privileges ON DATABASE $ONLYOFFICE_VALUE TO $ONLYOFFICE_VALUE;" && \ 
+    sudo -u postgres psql -c "CREATE DATABASE $ONLYOFFICE_VALUE OWNER $ONLYOFFICE_VALUE;" && \
     service postgresql stop && \
     service redis-server stop && \
     service rabbitmq-server stop && \
@@ -70,20 +72,27 @@ COPY run-document-server.sh /app/ds/run-document-server.sh
 
 EXPOSE 80
 
-ARG REPO_URL="deb http://download.onlyoffice.com/repo/debian squeeze main"
 ARG COMPANY_NAME=onlyoffice
 ARG PRODUCT_NAME=documentserver
+ARG PRODUCT_EDITION=
+ARG PACKAGE_VERSION=
+ARG TARGETARCH
+ARG PACKAGE_BASEURL="http://download.onlyoffice.com/install/documentserver/linux"
 
 ENV COMPANY_NAME=$COMPANY_NAME \
-    PRODUCT_NAME=$PRODUCT_NAME
+    PRODUCT_NAME=$PRODUCT_NAME \
+    PRODUCT_EDITION=$PRODUCT_EDITION \
+    DS_DOCKER_INSTALLATION=true
 
-RUN echo "$REPO_URL" | tee /etc/apt/sources.list.d/ds.list && \
+RUN PACKAGE_FILE="${COMPANY_NAME}-${PRODUCT_NAME}${PRODUCT_EDITION}${PACKAGE_VERSION:+_$PACKAGE_VERSION}_${TARGETARCH:-$(dpkg --print-architecture)}.deb" && \
+    wget -q -P /tmp "$PACKAGE_BASEURL/$PACKAGE_FILE" && \
     apt-get -y update && \
     service postgresql start && \
-    apt-get -yq install $COMPANY_NAME-$PRODUCT_NAME && \
+    apt-get -yq install /tmp/$PACKAGE_FILE && \
     service postgresql stop && \
     service supervisor stop && \
     chmod 755 /app/ds/*.sh && \
+    rm -f /tmp/$PACKAGE_FILE && \
     rm -rf /var/log/$COMPANY_NAME && \
     rm -rf /var/lib/apt/lists/*
 
