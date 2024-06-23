@@ -5,13 +5,26 @@ LABEL maintainer Ascensio System SIA <support@onlyoffice.com>
 
 ARG PG_VERSION=14
 
-ENV LANG=de_DE.UTF-8 LANGUAGE=de_DE:de LC_ALL=de_DE.UTF-8 DEBIAN_FRONTEND=noninteractive PG_VERSION=${PG_VERSION}
+ENV OC_RELEASE_NUM=21
+ENV OC_RU_VER=12
+ENV OC_RU_REVISION_VER=0
+ENV OC_RESERVED_NUM=0
+ENV OC_RU_DATE=0
+ENV OC_PATH=${OC_RELEASE_NUM}${OC_RU_VER}000
+ENV OC_FILE_SUFFIX=${OC_RELEASE_NUM}.${OC_RU_VER}.${OC_RU_REVISION_VER}.${OC_RESERVED_NUM}.${OC_RU_DATE}${OC_FILE_SUFFIX}dbru
+ENV OC_VER_DIR=${OC_RELEASE_NUM}_${OC_RU_VER}
+ENV OC_DOWNLOAD_URL=https://download.oracle.com/otn_software/linux/instantclient/${OC_PATH}
+
+ENV LANG=de_DE.UTF-8 LANGUAGE=de_DE:de LC_ALL=de_DE.UTF-8 DEBIAN_FRONTEND=noninteractive PG_VERSION=${PG_VERSION} BASE_VERSION=${BASE_VERSION}
 
 ARG ONLYOFFICE_VALUE=onlyoffice
 
 RUN echo "#!/bin/sh\nexit 0" > /usr/sbin/policy-rc.d && \
     apt-get -y update && \
     apt-get -yq install wget apt-transport-https gnupg locales lsb-release && \
+    wget -q -O /etc/apt/sources.list.d/mssql-release.list https://packages.microsoft.com/config/ubuntu/$BASE_VERSION/prod.list && \
+    wget -q -O - https://packages.microsoft.com/keys/microsoft.asc | apt-key add - && \
+    apt-get -y update && \
     locale-gen de_DE.UTF-8 && \
     echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections && \
     apt-get -yq install \
